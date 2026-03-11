@@ -36,7 +36,7 @@
     <h2>WebRTC: Dinaminis "Threshold" Filtras</h2>
     
     <div class="controls">
-        <label for="thresholdSlider">Filtro lygis: <span id="sliderValue">100</span></label><br><br>
+        <label for="thresholdSlider">Filtro lygis (Threshold): <span id="sliderValue">100</span></label><br><br>
         <input type="range" id="thresholdSlider" min="0" max="255" value="100">
     </div>
     
@@ -44,7 +44,7 @@
 
     <video id="video" playsinline autoplay style="display: none;"></video>
     
-    <canvas id="canvas"></canvas>
+    <canvas id="canvas" width="640" height="480"></canvas>
 
     <script>
         const video = document.getElementById('video');
@@ -57,7 +57,6 @@
             sliderValue.textContent = slider.value;
         });
 
-        // 1. Gauname prieigą prie kameros (WebRTC)
         navigator.mediaDevices.getUserMedia({ video: true, audio: false })
             .then(stream => {
                 video.srcObject = stream;
@@ -65,49 +64,43 @@
             })
             .catch(err => {
                 console.error("Kameros klaida: ", err);
-                alert("Nepavyko pasiekti kameros. Patikrinkite leidimus!");
+                alert("Nepavyko pasiekti kameros! Būtinai paleiskite per Live Server.");
             });
 
-        video.addEventListener('play', () => {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+        
+        video.addEventListener('loadedmetadata', () => {
+           
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
             requestAnimationFrame(processFrame);
         });
-
 
         function processFrame() {
             if (video.paused || video.ended) return;
 
-    
+           
+            if (canvas.width === 0) return; 
+
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-   
             let frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
             let data = frame.data;
             let threshold = parseInt(slider.value);
 
- 
             for (let i = 0; i < data.length; i += 4) {
                 let r = data[i];
                 let g = data[i+1];
                 let b = data[i+2];
 
-      
-                let brightness = (0.2126 * r + 0.7152 * g + 0.0722 *b);
-
-
+                let brightness = (0.2126 * r + 0.7152 * g + 0.0722 * b);
                 let color = (brightness >= threshold) ? 255 : 0;
 
                 data[i] = color;    
-                data[i+1] = color;   
+                data[i+1] = color;  
                 data[i+2] = color;  
-
             }
 
-       
             ctx.putImageData(frame, 0, 0);
-
-          
             requestAnimationFrame(processFrame);
         }
     </script>
